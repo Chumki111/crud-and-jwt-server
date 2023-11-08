@@ -28,6 +28,7 @@ async function run() {
     const PopularServiceCollection = client.db('servicesDB').collection('popularServices');
     const servicesCollection = client.db('servicesDB').collection('services');
     const bookingCollection = client.db('servicesDB').collection('bookings');
+    const addServicesCollection = client.db('servicesDB').collection('addServices');
 
     app.get('/popularServices',async(req,res) =>{
       const cursor = PopularServiceCollection.find();
@@ -50,6 +51,12 @@ async function run() {
       const order = req.body;
      
       const result = await bookingCollection.insertOne(order);
+      res.send(result)
+     })
+    app.post('/addServices',async(req,res) =>{
+      const order = req.body;
+     
+      const result = await addServicesCollection.insertOne(order);
       res.send(result)
      })
     // Send a ping to confirm a successful connection
