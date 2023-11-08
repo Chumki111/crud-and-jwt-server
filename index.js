@@ -55,10 +55,31 @@ async function run() {
      })
     app.post('/addServices',async(req,res) =>{
       const order = req.body;
-     
-      const result = await addServicesCollection.insertOne(order);
+     const result = await addServicesCollection.insertOne(order);
       res.send(result)
      })
+
+     app.get('/addServices',async(req,res) =>{
+      // console.log('tok tok token',req.cookies.token);
+      // console.log('user in the valid token',req.user);
+      // if(req.query.email !== req.user.email){
+      //   return res.status(403).send({message:'forbidden access'})
+      // }
+     let query = {};
+              if (req.query?.email) {
+                  query = { UserEmail: req.query.email }
+              }
+              const result = await addServicesCollection.find(query).toArray();
+              res.send(result);
+  });
+
+  app.delete('/addServices/:id',async(req,res) =>{
+    const id = req.params.id;
+    const query = {_id : new ObjectId(id)}
+    
+    const result = await addServicesCollection.deleteOne(query)
+    res.send(result)
+  })
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
