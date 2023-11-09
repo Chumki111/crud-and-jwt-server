@@ -9,7 +9,12 @@ const port = process.env.PORT || 5000;
 
 // middleWare
 app.use(cors({
-  origin :['http://localhost:5173'],
+  origin :[
+    // 'http://localhost:5173'
+    'https://offline-services-sharing.web.app',
+    'https://offline-services-sharing.firebaseapp.com'
+
+  ],
   credentials:true
 }));
 app.use(express.json())
@@ -108,13 +113,13 @@ async function run() {
       res.send(result)
     })
 
-    app.post('/bookings',logger,verifyToken,async(req,res) =>{
+    app.post('/bookings',async(req,res) =>{
       const order = req.body;
      
       const result = await bookingCollection.insertOne(order);
       res.send(result)
      })
-     app.get('/bookings',async(req,res) =>{
+     app.get('/bookings',logger,verifyToken,async(req,res) =>{
       console.log('user in the valid token',req.user);
       if(req.query.email !== req.user.email){
         return res.status(403).send({message:'forbidden access'})
@@ -134,7 +139,7 @@ async function run() {
       res.send(result)
      })
 
-     app.get('/addServices',async(req,res) =>{
+     app.get('/addServices',logger,verifyToken,async(req,res) =>{
       // console.log('tok tok token',req.cookies.token);
       // console.log('user in the valid token',req.user);
       // if(req.query.email !== req.user.email){
