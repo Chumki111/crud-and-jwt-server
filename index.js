@@ -1,14 +1,19 @@
 const express = require('express');
 const cors = require('cors');
+var jwt = require('jsonwebtoken');
+const cookie = require('cookie-parser')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express();
 require('dotenv').config()
 const port = process.env.PORT || 5000;
 
 // middleWare
-app.use(cors());
+app.use(cors({
+  origin :['http://localhost:5173'],
+  credentials:true
+}));
 app.use(express.json())
-
+app.use(cookie())
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.dnejwhv.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -19,6 +24,27 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   }
 });
+const logger = async(req,res,next) =>{
+  console.log('called:',req.host,req.originalUrl);
+  next();
+}
+const verifyToken = async(req,res,next) =>{
+  const token = req.cookies.token;
+  console.log('value of token in middleware',token);
+ if(!token) {
+  return res.status(401).send({message : 'not authorize'})
+ }
+ jwt.verify(token,process.env.ACCESS_TOKEN_SECRET,(err,decoded) =>{
+  if(err){
+    console.log(err);
+    return res.status(401).send({message : 'unauthorize'})
+  }
+  console.log('value in the token',decoded);
+   req.user = decoded;
+  next();
+ })
+  
+}
 
 async function run() {
   try {
@@ -29,7 +55,24 @@ async function run() {
     const servicesCollection = client.db('servicesDB').collection('services');
     const bookingCollection = client.db('servicesDB').collection('bookings');
     const addServicesCollection = client.db('servicesDB').collection('addServices');
-
+     
+    app.post('/jwt',logger,async(req,res) =>{
+      const user = req.body;
+      console.log(user);
+      const token = jwt.sign(user,process.env.ACCESS_TOKEN_SECRET,{expiresIn : '1h'})
+      res
+      .cookie('token',token,{
+        httpOnly:true,
+        secure:false,
+        // sameSite :'none'
+      })
+      .send({success:true})
+    })
+    app.post('/logout', async (req, res) => {
+      const user = req.body;
+      console.log('logging out', user);
+      res.clearCookie('token', { maxAge: 0 }).send({ success: true })
+  })
     app.get('/popularServices',async(req,res) =>{
       const cursor = PopularServiceCollection.find();
         const result = await cursor.toArray();
@@ -65,18 +108,17 @@ async function run() {
       res.send(result)
     })
 
-    app.post('/bookings',async(req,res) =>{
+    app.post('/bookings',logger,verifyToken,async(req,res) =>{
       const order = req.body;
      
       const result = await bookingCollection.insertOne(order);
       res.send(result)
      })
      app.get('/bookings',async(req,res) =>{
-      // console.log('tok tok token',req.cookies.token);
-      // console.log('user in the valid token',req.user);
-      // if(req.query.email !== req.user.email){
-      //   return res.status(403).send({message:'forbidden access'})
-      // }
+      console.log('user in the valid token',req.user);
+      if(req.query.email !== req.user.email){
+        return res.status(403).send({message:'forbidden access'})
+      }
       console.log(req.query?.email);
 
      let query = {};
@@ -99,9 +141,10 @@ async function run() {
       //   return res.status(403).send({message:'forbidden access'})
       // }
       console.log(req.query?.email);
+
      let query = {};
               if (req.query?.email) {
-                  query = { UserEmail: req.query.email }
+                  query = { userEmail: req.query.email }
               }
               const result = await addServicesCollection.find(query).toArray();
               res.send(result);
