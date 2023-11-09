@@ -35,6 +35,12 @@ async function run() {
         const result = await cursor.toArray();
         res.send(result)
     })
+    app.get('/popularServices/:id',async(req,res) =>{
+      const id =req.params.id;
+      const query = {_id:new ObjectId(id)}
+      const result = await PopularServiceCollection.findOne(query);
+      res.send(result)
+    })
     app.get('/services',async(req,res) =>{
       const cursor = servicesCollection.find();
         const result = await cursor.toArray();
@@ -46,6 +52,18 @@ async function run() {
       const result = await servicesCollection.findOne(query);
       res.send(result)
     })
+    app.patch('/bookings/:id',async(req,res) =>{
+      const id =req.params.id;
+      const query = {_id:new ObjectId(id)};
+      const updatedBooking = req.body;
+      const updateDoc =  {
+        $set :{
+          status : updatedBooking.status
+        }
+      }
+      const result = await bookingCollection.updateOne(query,updateDoc);
+      res.send(result)
+    })
 
     app.post('/bookings',async(req,res) =>{
       const order = req.body;
@@ -53,6 +71,21 @@ async function run() {
       const result = await bookingCollection.insertOne(order);
       res.send(result)
      })
+     app.get('/bookings',async(req,res) =>{
+      // console.log('tok tok token',req.cookies.token);
+      // console.log('user in the valid token',req.user);
+      // if(req.query.email !== req.user.email){
+      //   return res.status(403).send({message:'forbidden access'})
+      // }
+      console.log(req.query?.email);
+
+     let query = {};
+              if (req.query?.email) {
+                  query = { userEmail: req.query.email }
+              }
+              const result = await bookingCollection.find(query).toArray();
+              res.send(result);
+  });
     app.post('/addServices',async(req,res) =>{
       const order = req.body;
      const result = await addServicesCollection.insertOne(order);
@@ -65,6 +98,7 @@ async function run() {
       // if(req.query.email !== req.user.email){
       //   return res.status(403).send({message:'forbidden access'})
       // }
+      console.log(req.query?.email);
      let query = {};
               if (req.query?.email) {
                   query = { UserEmail: req.query.email }
